@@ -1,0 +1,7 @@
+http://localhost:<PORT>/ = `GET` HTTP method -> display datas
+
+http://localhost:<PORT>/profile = `POST` HTTP method -> creates id, name, password in request body
+
+http://localhost:<PORT>/register = `POST` HTTP method -> register new user using name, password, email
+
+http://localhost:<PORT>/image = `PUT` HTTP method -> increment entries based on id
