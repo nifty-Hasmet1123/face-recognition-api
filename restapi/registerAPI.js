@@ -1,20 +1,33 @@
 import bcrypt from "bcrypt";
 import { format } from "date-fns";
 
+function getNameThruUserEmail(emailParams) {
+    let container = [];
+
+    for (let letter of emailParams) {
+        if (letter === "@") {
+            break;
+        }
+        container.push(letter);
+    }
+    return container.join("");
+};
+
 export function registerAPI(database, APP) {
     APP.post("/register", async (request, response) => {
-        const { name, email, password } = request?.body;
+        const { email, password } = request?.body;
         const currentDate = new Date();
         const formattedDate = format(currentDate, "MMMM dd, yyyy HH:mm:ss");
-        
+        const databaseCurrentLength = database.users.length;
         // using bcrypt for password encryption
         // condition block still pending if I will remove this
         // or not depending on the front-end
-        if (!!name && !!email && !!password && !!request?.body?.id) {
+        if (!!email && !!password) {
             const hash = await bcrypt.hash(password, 10);
+            let name = getNameThruUserEmail(email);
             
             const newData = {
-                id: request?.body?.id,
+                id: databaseCurrentLength + 1,
                 name: name,
                 email: email,
                 password: password,
@@ -41,7 +54,8 @@ export function registerAPI(database, APP) {
             });
 
         } else {
-            response.json({ "Error": "Input `id`, `name`, `email`, and `password`" });
+            // response.json({ "Error": "Input `id`, `name`, `email`, and `password`" });
+            response.json({ "Error": "Input `username/email` & `password`" })
         };
     });
 };
