@@ -19,6 +19,7 @@ export function registerAPI(database, APP) {
         const currentDate = new Date();
         const formattedDate = format(currentDate, "MMMM dd, yyyy HH:mm:ss");
         const databaseCurrentLength = database.users.length;
+        const data = await getDataUsers();
         // using bcrypt for password encryption
         // condition block still pending if I will remove this
         // or not depending on the front-end
@@ -26,20 +27,29 @@ export function registerAPI(database, APP) {
             const hash = await bcrypt.hash(password, 10);
             let name = getNameThruUserEmail(email);
             
-            const newData = {
-                id: databaseCurrentLength + 1,
-                name: name,
-                email: email,
-                password: password,
-                entries: 0,
-                joined: formattedDate
-            };
-
-            database.users.push(newData);
-            database.login.push({
+            // insert database using knex parameter
+            data("users").insert({
+                name,
                 email,
-                hash
-            });
+                password,
+                entries,
+                joined: formattedDate
+            })
+            
+            // const newData = {
+            //     id: databaseCurrentLength + 1,
+            //     name: name,
+            //     email: email,
+            //     password: password,
+            //     entries: 0,
+            //     joined: formattedDate
+            // };
+            
+            // database.users.push(newData);
+            // database.login.push({
+            //     email,
+            //     hash
+            // });
 
             // don't put this on top it will have issue on reading this code
             const lastData = database.users.length - 1;
@@ -52,7 +62,6 @@ export function registerAPI(database, APP) {
                 entries,
                 joined
             });
-
         } else {
             // response.json({ "Error": "Input `id`, `name`, `email`, and `password`" });
             response.json({ "Error": "Input `username/email` & `password`" })
