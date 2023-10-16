@@ -1,7 +1,16 @@
-http://localhost:<PORT>/ = `GET` HTTP method -> display datas
+http://localhost:<PORT>/api = `GET` HTTP method -> display datas
 
-http://localhost:<PORT>/profile = `POST` HTTP method -> creates id, name, password in request body
+http://localhost:<PORT>/profile/:id = `POST` HTTP method -> creates id, name, password in request body
 
 http://localhost:<PORT>/register = `POST` HTTP method -> register new user using name, password, email
 
 http://localhost:<PORT>/image = `PUT` HTTP method -> increment entries based on id
+
+http://localhost:<PORT>/remove/:table/:id = `delete` user entries based on id.
+
+only have two tables at the moment: 
+logins and users
+
+example:
+http://localhost:<PORT>/remove/logins/1
+http://localhost:<PORT>/remove/users/1
