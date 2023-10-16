@@ -24,7 +24,7 @@ import validator from "./functions/async_validator.js";
 // correctly the body for json.
 // apply cors() function. for front-end react to communicate with this server.
 // these 3 codes are middleware to be used in connecting to the front end.
-app.use(express.urlencoded({ extended:true }));
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cors());
 
@@ -51,11 +51,11 @@ async function runTestServer(PORT, APP) {
         let isValid;
         
         if (!!reqInputEmail && !!reqInputPassword) {
-            isValid = await validator(reqInputEmail, reqInputPassword, db);
+            isValid = await validator(reqInputEmail, reqInputPassword, db); // returns boolean
             isValid ? response.status(200).json({ "Valid": "Success logging in!" }):
                       response.status(401).json({ "Error": "Invalid credentials" });
         } else {
-            response.status(400).json({ Error: "Missing email or password" });
+            response.status(400).json({ "Error": "Missing email or password" });
         };
     });
 
