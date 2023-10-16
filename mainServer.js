@@ -9,90 +9,84 @@
  */
 
 // package for bypassing `No Access-Control-Allow-Origin` in chrome
-// you need to install cors library from this api folder
-
+// you need to install `cors` library from this api folder
 // package for connecting database to back-end using knex.js only works on node.js
 
-
-// const express = require("express");
-import express from "express";
-import cors from "cors";
-import knex from "knex";
+import { db, app, PORT } from "./config/config.js";
 import { format } from "date-fns";
+import bcrypt from "bcrypt";
+import cors from "cors";
+import express from "express";
+import getNameThruUserEmail from "./functions/getName.js";
+import validator from "./functions/async_validator.js";
 
-// import { database } from "./database/db.js";
-// import { signInPost } from "./restapi/signInAPI.js";
-// import { registerAPI } from "./restapi/registerAPI.js";
-// import { profileAPI } from "./restapi/profileAPI.js";
-// import { imageAPI } from "./restapi/imageAPI.js";
-
-// create an instance of knex to connect your back-end to the database
-const knexConfig = {
-    client: "sqlite3",
-    connection: {
-        filename: "./database/face-recognition.db"
-    },
-
-    useNullAsDefault: true,
-};
-// create instance of knex with config arguments
-const db = knex(knexConfig);
-
-// create an instance of express named `app` and create port number
-const app = express();
-const PORT = 8001;
-
-// don't forget this to be able to parse 
-// correctly the body for json
-// apply cors() function. for front-end react to communicate with this server
+// don't forget this to be able to parse. 
+// correctly the body for json.
+// apply cors() function. for front-end react to communicate with this server.
+// these 3 codes are middleware to be used in connecting to the front end.
 app.use(express.urlencoded({ extended:true }));
 app.use(express.json());
 app.use(cors());
 
-function getNameThruUserEmail(emailParams) {
-    let container = [];
-
-    for (let letter of emailParams) {
-        if (letter === "@") {
-            break;
-        }
-        container.push(letter);
-    }
-    return container.join("");
-};
-
-
 async function runTestServer(PORT, APP) {
-    // working
-    APP.get("/", async (request, response) => {
+    // api endpoint
+    APP.get("/api", async (request, response) => {
         try {
-            const data = await db.select("*").from("users");
-            console.log(data);
-            response.send(data)
+            const userTable = await db.select("*").from("users");
+            const loginTable = await db.select("*").from("logins");
+            // const allData = [...userTable, ...loginTable];
+
+            response.status(200).send(userTable);
+            console.log(loginTable);
         } catch (error) {
             console.log(error);
+            response.status(500).json("Ooops something went wrong!");
         };
     });
 
-    // working but ID is null
-    // need to create new db for this
+    // signin endpoint
+    APP.post("/signin", async (request, response) => {
+        const reqInputEmail = request?.body?.email;
+        const reqInputPassword = request?.body?.password;
+        let isValid;
+        
+        if (!!reqInputEmail && !!reqInputPassword) {
+            isValid = await validator(reqInputEmail, reqInputPassword, db);
+            isValid ? response.status(200).json({ "Valid": "Success logging in!" }):
+                      response.status(401).json({ "Error": "Invalid credentials" });
+        } else {
+            response.status(400).json({ Error: "Missing email or password" });
+        };
+    });
+
+    // working register endpoint
     APP.post("/register", async (request, response) => {
         try {
             const currentDate = new Date();
             const formattedDate = format(currentDate, "MMMM dd, yyyy HH:mm:ss");
-            const { id, email, entries } = request?.body;
-            const name = getNameThruUserEmail(email);
+            const { email, password } = request?.body;
 
+            if (!!email && !!password) {
+                const hash = await bcrypt.hash(password, 10);
+                await db("logins").insert({
+                    email: email,
+                    hash: hash
+                });
+            };
+
+            const name = getNameThruUserEmail(email);
+            
             await db("users").insert({
-                id,
                 name,
                 email,
-                entries,
                 joined: formattedDate
             });
 
-            // Query the inserted data by the IDs
-            const insertedData = await db.select("*").from("users").where({ id })
+            // use the db.raw method to get the last inserted id in the table
+            const lastInsertedData = await db.raw("SELECT last_insert_rowid() as id");
+            
+            // Query the last inserted data by ID
+            const insertedData = await db.select("*").from("users").where({ id: lastInsertedData[0].id })
             console.log(insertedData);
 
             // show the response of the new inserted data
@@ -103,46 +97,69 @@ async function runTestServer(PORT, APP) {
         };
     });
 
-    APP.delete("/remove/:id", async (request, response) => {
-        // this is a column name within the db
-        const id = request.params.id;
-
+    // profile endpoint
+    APP.get("/profile/:id", async (request, response) => {
+        const { id } = request?.params;
+        
         try {
-            // delete an entry based on id 
-            const deletedEntry = await db("users").where({ id }).del();
+            const userProfile = await db.select("*").from("users").where({ id });
+            
+            userProfile ? response.json(userProfile): 
+            response.status(400).json({ "error": "user not found" });
 
-            if (deletedEntry > 0) {
-                // no-content response meaning the id entry is removed
-                response.header("Deleted", `id entry: ${id}`);
-                response.status(204).send(); 
-            } else {
-                response.status(404).json({ "Error": "Resource not found" });
-            };
         } catch (error) {
-            console.error({ "Errro": error });
-            // Server error, return a 500 response.
-            response.status(500).json({ "Error": error.message })
+            response.status(500).json({ "Error made: ": error.message })
         };
     });
-    
+
+    // put endpoint
+    APP.put("/image", async (request, response) => {
+        const { id } = request?.body;
+        // return an array of columns(key,value)
+        try {
+            const user = await db.select("*").from("users").where({ id: id });
+            
+            // increment entries
+            const updateEntries = user[0].entries += 1;
+            await db("users").where({ id }).update({ entries: updateEntries });
+
+            response.status(200).json({ user: user[0] });
+        } catch (error) {
+            response.status(500).json({ "error": "resource not found." })
+        };
+    });
+
+    // delete endpoint
+    APP.delete("/remove/:table/:id" , async (request, response) => {
+        // note :table and :id should match tthe request.params to work
+        const { table, id } = request?.params;
+        let deletedEntry;
+        
+        try {
+            if (table === "users") {
+                deletedEntry = await db("users").where({ id }).del();    
+            } else if (table === "logins") {
+                deletedEntry = await db("logins").where({ id }).del();
+            } else {
+                response.status(404).json({ "Error": "Resource not found." });
+                return; // stops the process if the tableName doesn't exist in db
+            };
+
+            if (deletedEntry > 0) {
+                response.header("Deleted", `id entry: ${id} from table: ${table}`);
+                response.status(204).send();
+            } else {
+                response.status(404).json({ "Error": "Resource not found." });
+            }
+        } catch (error) {
+            console.error({ "Error": error });
+            response.status(500).json({ "Error": error.message });
+        };
+    });
+
     APP.listen(PORT, () => {
         console.log(`Server running at port: http://localhost:${PORT}`);
-    });
-    
-    // // sign-in post request
-    // signInPost(database, APP);
-    
-    // // register post request
-    // registerAPI(getDataUsers, APP);
-
-    // // profileAPI
-    // profileAPI(database, APP);
-
-    // // imageAPI
-    // imageAPI(database, APP);
-   
-    // listen port
-    
+    }); 
 };
 
 runTestServer(PORT, app);

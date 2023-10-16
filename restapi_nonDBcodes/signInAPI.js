@@ -4,6 +4,7 @@
 
 // use bcrypt for password encryption
 import bcrypt from "bcrypt";
+import { response } from "express";
 
 export function signInPost(database, APP) {
     APP.post("/signin", async (request, response) => {
@@ -47,3 +48,20 @@ export function signInPost(database, APP) {
         };
     });
 };
+
+
+
+// async function validator(email, password, db) {
+//     let passwordMatch;
+//     if (email) {
+//         const loginData = await db.select("hash").from("logins").where({ email: email });
+        
+//         if (loginData) {
+//             const hash = loginData.hash;
+//             passwordMatch = await bcrypt.compare(password, hash); 
+//         };
+//     };
+
+//     // returns if password match is true or false;
+//     return passwordMatch;  
+// }
