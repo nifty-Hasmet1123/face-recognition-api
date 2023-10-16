@@ -32,8 +32,8 @@ async function runTestServer(PORT, APP) {
     // api endpoint
     APP.get("/api", async (request, response) => {
         try {
-            const userTable = await db.select("*").from("users");
-            const loginTable = await db.select("*").from("logins");
+            const userTable = await db.select("*").from("users"); // returns an array
+            const loginTable = await db.select("*").from("logins"); // returns an array
             // const allData = [...userTable, ...loginTable];
 
             response.status(200).send(userTable);
@@ -102,11 +102,12 @@ async function runTestServer(PORT, APP) {
         const { id } = request?.params;
         
         try {
+            // returns an array of object
             const userProfile = await db.select("*").from("users").where({ id });
             
-            userProfile ? response.status(200).json(userProfile): 
+            userProfile.length > 0 ? response.status(200).json(userProfile): 
             response.status(400).json({ "error": "user not found" });
-
+            
         } catch (error) {
             response.status(500).json({ "Error made: ": error.message })
         };
