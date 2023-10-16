@@ -104,7 +104,7 @@ async function runTestServer(PORT, APP) {
         try {
             const userProfile = await db.select("*").from("users").where({ id });
             
-            userProfile ? response.json(userProfile): 
+            userProfile ? response.status(200).json(userProfile): 
             response.status(400).json({ "error": "user not found" });
 
         } catch (error) {
