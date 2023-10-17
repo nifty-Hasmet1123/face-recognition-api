@@ -52,8 +52,14 @@ async function runTestServer(PORT, APP) {
         
         if (!!reqInputEmail && !!reqInputPassword) {
             isValid = await validator(reqInputEmail, reqInputPassword, db); // returns boolean
-            isValid ? response.status(200).json({ "Valid": "Success logging in!" }):
-                      response.status(401).json({ "Error": "Invalid credentials" });
+
+            if (isValid) {
+                const user = await db.select("id").from("users").where({ email: `${reqInputEmail}` });
+                
+                response.status(200).json({ "user_id": user[0].id, "valid": "success logging in." })
+            } else {
+                response.status(400).json({ "Error": "Invalid credentials" });
+            };
         } else {
             response.status(400).json({ "Error": "Missing email or password" });
         };
@@ -90,7 +96,7 @@ async function runTestServer(PORT, APP) {
             console.log(insertedData);
 
             // show the response of the new inserted data
-            response.status(201).json(insertedData);
+            response.status(201).json(insertedData[0]);
         } catch (error) {
             console.error({"Error": error});
             response.status(500).json({ "Error": error.message });
