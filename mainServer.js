@@ -130,7 +130,7 @@ async function runTestServer(PORT, APP) {
             const updateEntries = user[0].entries += 1;
             await db("users").where({ id }).update({ entries: updateEntries });
 
-            response.status(200).json({ user: user[0] });
+            response.status(200).json(user[0]);
         } catch (error) {
             response.status(500).json({ "error": "resource not found." })
         };
