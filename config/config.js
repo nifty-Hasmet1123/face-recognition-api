@@ -21,6 +21,6 @@ const knexConfig = {
 
 const db = knex(knexConfig);
 const app = express();
-const PORT = 8001;
+const PORT = 8080;
 
 export { db, app, PORT };
